@@ -1,0 +1,10 @@
+# Configuración local sensible
+.env
+
+# Archivos temporales de sesión o sistema
+.sh
+*.log
+.DS_Store
+
+# Archivos subidos por usuarios (si aplica)
+uploads
