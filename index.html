@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/3.3.4/jquery-confirm.min.css" integrity="sha512-0V10q+b1Iumz67sVDL8LPFZEEavo6H/nBSyghr7mm9JEQkOAm91HNoZQRvQdjennBb/oEuW+8oZHVpIKq+d25g==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <title>Mi Chatbot Avanzado con Gemini</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .chat-container { width: 500px; background: white; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; overflow: hidden; height: 550px; }
+        .chat-header { background: #0078d4; color: white; padding: 18px; text-align: center; font-weight: bold; font-size: 1.2em; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .chat-box { flex: 1; padding: 15px; overflow-y: auto; border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 12px; background: #fafafa; }
+        .message { padding: 12px 16px; border-radius: 18px; max-width: 80%; word-wrap: break-word; font-size: 0.95em; line-height: 1.4; }
+        .user-msg { background: #0078d4; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .bot-msg { background: #ffffff; color: #202020; align-self: flex-start; border-bottom-left-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        
+        /* Estilos para renderizado de código dentro de Markdown */
+        .bot-msg pre { background: #2d3748; color: #f7fafc; padding: 12px; border-radius: 8px; overflow-x: auto; font-family: 'Courier New', Courier, monospace; margin: 8px 0; }
+        .bot-msg code { background: #edf2f7; color: #2d3748; padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
+        .bot-msg pre code { background: transparent; color: inherit; padding: 0; }
+        .bot-msg ul, .bot-msg ol { margin: 5px 0; padding-left: 20px; }
+        
+        .chat-input-area { display: flex; padding: 12px; background: white; align-items: center; gap: 8px; border-top: 1px solid #eee; }
+        .chat-input { flex: 1; padding: 12px; border: 1px solid #ccd0d5; border-radius: 24px; outline: none; padding-left: 18px; font-size: 0.95em; background: #f0f2f5; }
+        .chat-input:focus { background: white; border-color: #0078d4; }
+        .chat-btn { background: #0078d4; color: white; border: none; padding: 12px 20px; border-radius: 24px; cursor: pointer; font-weight: bold; font-size: 0.95em; transition: background 0.2s; }
+        .chat-btn:hover { background: #005a9e; }
+        .chat-btn:disabled { background: #ccc; cursor: not-allowed; }
+        
+        /* Botón de Adjuntar Archivo */
+        .file-label { background: #e1dfdd; color: #323130; padding: 12px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; font-weight: bold; font-size: 1.1em; transition: background 0.2s; }
+        .file-label:hover { background: #c8c6c4; }
+        #fileInput { display: none; }
+        .preview-box { font-size: 0.85em; color: #605e5c; padding: 2px 15px; background: #f3f2f1; display: none; text-align: left; }
+
+        /* Botón de Reiniciar Chat */
+        .chat-header { display: flex; justify-content: space-between; align-items: center; background: #0078d4; color: white; padding: 12px 18px; font-weight: bold; font-size: 1.1em; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .clear-btn { background: rgba(255, 255, 255, 0.2); color: white; border: none; padding: 6px 12px; border-radius: 15px; cursor: pointer; font-size: 0.8em; font-weight: normal; transition: background 0.2s; }
+        .clear-btn:hover { background: rgba(255, 255, 255, 0.35); }
+
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-header">
+        <span>Asistente Pro Multimodal</span>
+        <button id="clearBtn" class="clear-btn" title="Reiniciar conversación">🔄 Reiniciar</button>
+    </div>
+    <div class="chat-box" id="chatBox">
+        <div class="message bot-msg">¡Hola! Ahora puedo recordar nuestra conversación y analizar cualquier imagen que me envíes. ¿Qué deseas consultar?</div>
+    </div>
+    <div class="preview-box" id="filePreview">📂 Archivo seleccionado: <span id="fileName"></span></div>
+    <div class="chat-input-area">
+        <label for="fileInput" class="file-label" title="Adjuntar imagen">📎</label>
+        <input type="file" id="fileInput" accept="image/*">
+        
+        <input type="text" id="userInput" class="chat-input" placeholder="Escribe un mensaje..." autocomplete="off">
+        <button id="sendBtn" class="chat-btn">Enviar</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-4.0.0.js" integrity="sha256-9fsHeVnKBvqh3FB2HYu7g2xseAZ5MlN6Kz/qnkASV8U=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/18.0.13/lib/marked.umd.js" integrity="sha512-JuWDx2Hm3DKIbzstrcEoSGqP6C5x/GXFfMf1QBxEQjj1ShT16/g6PoPfQtMk+804Z6XeFs65QEFlbZC4e0lpPQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+    // Parche para dar soporte a librerías viejas en jQuery 4.0+
+    jQuery.isFunction = jQuery.isFunction || function(obj) {
+        return typeof obj === "function";
+    };
+    
+    jQuery.trim = jQuery.trim || function(str) {
+        return (str == null) ? "" : String(str).trim();
+    };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bPopup/0.11.0/jquery.bpopup.js" integrity="sha512-CQ5jiRwHEBqO2GFEO/VQi5MbV3MQeX4dftsA4HcVz94Ok08mISN+3pqdAhay0z/shDOWY4DzaBzFNME+FzDX+Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bPopup/0.11.0/jquery.bpopup.min.js" integrity="sha512-kmrY+BFhi6ywgfK8hW1ySM/KYU3xPd4elbMhORq3DhacwqmitFrf3GB2HpLj3srV1zFsqxvAcZ4qU+y+ym1Eeg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/3.3.4/jquery-confirm.min.js" integrity="sha512-zP5W8791v1A6FToy+viyoyUUyjCzx+4K8XZCKzW28AnCoepPNIXecxh9mvGuy3Rt78OzEsU+VCvcObwAMvBAww==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script>
+$(document).ready(function() {
+
+    // Evento para limpiar el historial de la sesión
+    $('#clearBtn').on('click', function() {
+        $.confirm({
+            title: 'Mensaje del sistema',
+            content: '¿Estás seguro de que deseas reiniciar la conversación y borrar la memoria del chat?',
+            backgroundDismiss: false,
+            escapeKey: 'cancelar',
+            theme: 'supervan',
+            type: 'red',
+            icon: 'fa fa-exclamation-triangle',
+            buttons: {
+                confirmar: {
+                    text: '<i class="fa fa-trash"></i> Si, borrar',
+                    btnClass: 'btn-red',
+                    action: function() {
+                        $.ajax({
+                            url: 'clear-service.php',
+                            type: 'POST',
+                            dataType: 'json',
+                            success: function(response) {
+                                if (response.status === 'success') {
+                                    // Limpiar la pantalla y restaurar el mensaje de bienvenida
+                                    $('#chatBox').html('<div class="message bot-msg">¡Historial borrado! La memoria se ha reiniciado. ¿En qué puedo ayudarte ahora?</div>');
+                                } else {
+                                    $.alert({
+                                        title: 'error',
+                                        content: 'No se pudo limpiar la sesión.',
+                                        type: 'red',
+                                        icon: 'fa fa-times-circle'
+                                    });
+                                }
+                            },
+                            error: function() {
+                                $.alert({
+                                    title: 'Error de conexión',
+                                    content: 'Error de conexión al intentar reiniciar el chat.',
+                                    type: 'red',
+                                    icon: 'fa fa-wifi'
+                                });
+                            }
+                        });
+                    }
+                },
+                cancelar: {
+                    text: 'Cancelar',
+                    btnClass: 'btn-default',
+                    action: function() {
+
+                    }
+                }
+            }
+        }); 
+    });
+    
+    // Mostrar nombre del archivo al adjuntar imagen
+    $('#fileInput').on('change', function() {
+        var file = this.files[0];
+        if (file) {
+            $('#fileName').text(file.name);
+            $('#filePreview').slideDown(150);
+        } else {
+            $('#filePreview').slideUp(150);
+        }
+    });
+
+    function enviarMensaje() {
+        var txtInput = $('#userInput');
+        var btnEnviar = $('#sendBtn');
+        var fileInput = $('#fileInput');
+        
+        var mensaje = txtInput.val().trim();
+        var archivo = fileInput.prop('files')[0];
+
+        if (mensaje === '' && !archivo) return;
+
+        // --- AQUÍ SE ADJUNTÓ EL CAMBIO PARA EL PREVIEW DE LA IMAGEN ---
+        // Generamos un ID único usando milisegundos para esta burbuja específica
+        var msgId = 'msg-' + Date.now();
+        var userHtml = '<div class="message user-msg" id="' + msgId + '">';
+        
+        // Si el usuario escribió texto, lo añadimos
+        if (mensaje !== '') {
+            userHtml += '<div>' + mensaje + '</div>';
+        }
+        
+        // Si el usuario cargó un archivo, añadimos un contenedor temporal para la imagen
+        if (archivo) {
+            userHtml += '<div class="img-preview-inside" style="margin-top: 5px;"><i>Cargando vista previa...</i></div>';
+            
+            // Instanciamos el lector local del navegador
+            var lector = new FileReader();
+            lector.onload = function(e) {
+                // Reemplazamos el texto temporal por la etiqueta <img> con estilos estéticos
+                $('#' + msgId + ' .img-preview-inside').html(
+                    '<img src="' + e.target.result + '" style="max-width: 100%; max-height: 150px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); display: block; margin-top: 5px;">'
+                );
+                scrollChat(); // Ajustamos el scroll una vez que la imagen se renderice
+            };
+            lector.readAsDataURL(archivo);
+        }
+        
+        userHtml += '</div>';
+        $('#chatBox').append(userHtml);
+        
+        // Limpiar inputs de inmediato para una mejor experiencia de usuario
+        txtInput.val('');
+        fileInput.val('');
+        $('#filePreview').hide();
+        scrollChat();
+        // --------------------------------------------------------------
+
+        // 2. Bloquear interfaz y agregar burbuja de carga
+        txtInput.prop('disabled', true);
+        btnEnviar.prop('disabled', true);
+        $('#chatBox').append('<div class="message bot-msg" id="loading"><i>Pensando y analizando...</i></div>');
+        scrollChat();
+
+        // 3. Crear objeto FormData para el envío físico de la imagen
+        var formData = new FormData();
+        formData.append('mensaje', mensaje);
+        if (archivo) {
+            formData.append('imagen', archivo);
+        }
+
+        // 4. Llamada AJAX hacia nuestro Servicio Multimodal PHP
+        $.ajax({
+            url: 'chat-service.php',
+            type: 'POST',
+            data: formData,
+            dataType: 'json',
+            processData: false, 
+            contentType: false, 
+            success: function(response) {
+                $('#loading').remove();
+                
+                if (response.status === 'success') {
+                    // Convertimos la respuesta Markdown de Gemini a HTML estético usando Marked.js
+                    var htmlRenderizado = marked.parse(response.respuesta);
+                    $('#chatBox').append('<div class="message bot-msg">' + htmlRenderizado + '</div>');
+                } else {
+                    $('#chatBox').append('<div class="message bot-msg" style="color:red;">⚠️ Error: ' + response.message + '</div>');
+                }
+                scrollChat();
+            },
+            error: function(xhr, status, error) {
+                $('#loading').remove();
+                $('#chatBox').append('<div class="message bot-msg" style="color:red;">⚠️ Error de conexión con tu backend.</div>');
+                scrollChat();
+            },
+            complete: function() {
+                txtInput.prop('disabled', false);
+                btnEnviar.prop('disabled', false);
+                txtInput.focus();
+            }
+        });
+    }
+
+    function scrollChat() {
+        var chatBox = $('#chatBox');
+        chatBox.scrollTop(chatBox[0].scrollHeight);
+    }
+
+    $('#sendBtn').on('click', function() { enviarMensaje(); });
+    $('#userInput').on('keypress', function(e) { if (e.which === 13) enviarMensaje(); });
+});
+</script>
+
+</body>
+</html>
