@@ -47,6 +47,6 @@ $apiKey = $_ENV['GEMINI_API_KEY'] ?? getenv('GEMINI_API_KEY') ?? null;
 define('GEMINI_API_KEY', $apiKey);
 
 // Validación real y profesional
-if (!GEMINI_API_KEY || GEMINI_API_KEY === 'tAQ.Ab8RN6JHJw6DWjYEcScNXUCLP4JwS0T931EEP3mEklWS3TsGuA') {
-    die("Error: Por favor configura una API Key válida en tu archivo .env\n");
+if (!defined('GEMINI_API_KEY') || GEMINI_API_KEY === 'TU_API_KEY_AQUI' || empty(GEMINI_API_KEY)) { 
+    die("Error: Por favor configura una API Key válida en tu archivo .env\n"); 
 }
