@@ -58,13 +58,30 @@
             color: var(--texto-principal);
         }
 
+        /* Botón flotante circular abajo a la derecha */
+        #chat-widget-button { position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px; background-color: var(--boton-enviar); /* Usa tu color dinámico de enviar */ color: #ffffff; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 26px; cursor: pointer; box-shadow: var(--sombra); z-index: 99999; transition: transform 0.2s ease;}
+
+        #chat-widget-button:hover { transform: scale(1.1); }
+
+        /* Contenedor fijo de la ventana del chat */
+        #chat-widget-window { position: fixed; bottom: 96px; right: 24px; width: 380px; /* Ancho ideal para un widget de chat */ height: 600px; /* Alto ideal */ z-index: 99998; transition: opacity 0.3s ease, transform 0.3s ease; }
+
+        /* Clase para ocultar o mostrar el chat con animación suave */
+        .chat-hidden { opacity: 0; pointer-events: none; transform: translateY(20px); }
+
+        /* Adaptamos tu contenedor existente para que llene el widget flotante */
+        #chat-widget-window .chat-container { width: 100% !important; height: 100% !important; max-width: none !important; }
+
+        /* Ajuste responsivo para que en celulares ocupe casi toda la pantalla */
+        @media (max-width: 480px) { #chat-widget-window { width: calc(100% - 32px); height: calc(100% - 140px); bottom: 96px; right: 16px; }}
+
         /* Botón de Modo Oscuro Flotante */
         .theme-toggle-btn { position: fixed; top: 20px; right: 20px; background: var(--bg-container); color: var(--texto-principal); border: 1px solid var(--borde); padding: 10px 16px; border-radius: 50px; cursor: pointer; font-weight: 600; box-shadow: var(--sombra); z-index: 1000; display: flex; align-items: center; gap: 8px; }
         .theme-toggle-btn:hover { opacity: 0.9; }
         /* Contenedor principal adaptado */
         .chat-container { width: 90%; max-width: 600px; background-color: var(--bg-container); border-radius: 16px; box-shadow: var(--sombra); overflow: hidden; display: flex; flex-direction: column; height: 80vh; border: 1px solid var(--borde); }
         .chat-header { background-color: var(--bg-container); padding: 15px 20px; border-bottom: 1px solid var(--borde); display: flex; justify-content: space-between; align-items: center; }
-        .chat-header h5 { margin: 0; font-size: 1.3rem; color: var(--texto-principal); }
+        .chat-header h6 { margin: 0; font-size: 1.3rem; color: var(--texto-principal); }
         .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background-color: var(--bg-container); }
         .message { max-width: 75%; padding: 12px 16px; border-radius: 12px; font-size: 0.95rem; line-height: 1.4; word-wrap: break-word; }
         /* Tus burbujas originales mapeadas a las variables de color */
@@ -121,21 +138,27 @@
     <span id="theme-icon">🌙</span> <span id="theme-text">Modo Oscuro</span>
 </button>
 
-<div class="chat-container">
-    <div class="chat-header">
-        <h5>Mi Chatbot Avanzado con Gemini</h5>
-        <button id="clearBtn" class="clear-btn" title="Reiniciar conversación">🔄 Reiniciar</button>
-    </div>
-    <div class="chat-box" id="chatBox">
-        <div class="message bot-msg">¡Hola! Ahora puedo recordar nuestra conversación y analizar cualquier imagen que me envíes. ¿Qué deseas consultar?</div>
-    </div>
-    <div class="preview-box" id="filePreview">📂 Archivo seleccionado: <span id="fileName"></span></div>
-    <div class="chat-input-area">
-        <label for="fileInput" class="file-label" title="Adjuntar imagen">📎</label>
-        <input type="file" id="fileInput" accept="image/*">
+<!-- 1. NUEVO: AGREGAR EL BOTÓN FLOTANTE CIRCULAR -->
+<button id="chat-widget-button" onclick="toggleChatWidget()">🤖</button>
+
+<!-- 2. NUEVO: CONTENEDOR ENVOLVENTE (Inicia oculto con la clase chat-hidden) -->
+<div id="chat-widget-window" class="chat-hidden">
+    <div class="chat-container">
+        <div class="chat-header">
+            <h6>Mi Chatbot Avanzado con Gemini</h6>
+            <button id="clearBtn" class="clear-btn" title="Reiniciar conversación">🔄 Reiniciar</button>
+        </div>
+        <div class="chat-box" id="chatBox">
+            <div class="message bot-msg">¡Hola! Ahora puedo recordar nuestra conversación y analizar cualquier imagen que me envíes. ¿Qué deseas consultar?</div>
+        </div>
+        <div class="preview-box" id="filePreview">📂 Archivo seleccionado: <span id="fileName"></span></div>
+        <div class="chat-input-area">
+            <label for="fileInput" class="file-label" title="Adjuntar imagen">📎</label>
+            <input type="file" id="fileInput" accept="image/*">
         
-        <input type="text" id="userInput" class="chat-input" placeholder="Escribe un mensaje..." autocomplete="off">
-        <button id="sendBtn" class="chat-btn">Enviar</button>
+            <input type="text" id="userInput" class="chat-input" placeholder="Escribe un mensaje..." autocomplete="off">
+            <button id="sendBtn" class="chat-btn">Enviar</button>
+        </div>
     </div>
 </div>
 
@@ -157,6 +180,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/3.3.4/jquery-confirm.min.js" integrity="sha512-zP5W8791v1A6FToy+viyoyUUyjCzx+4K8XZCKzW28AnCoepPNIXecxh9mvGuy3Rt78OzEsU+VCvcObwAMvBAww==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 <script>
+    function toggleChatWidget() {
+        const chatWindow = document.getElementById('chat-widget-window');
+        chatWindow.classList.toggle('chat-hidden');
+    }
+    
 $(document).ready(function() {
 
     // Lógica jQuery para alternar Modo Claro / Modo Oscuro
