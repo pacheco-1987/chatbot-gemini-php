@@ -9,45 +9,121 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/3.3.4/jquery-confirm.min.css" integrity="sha512-0V10q+b1Iumz67sVDL8LPFZEEavo6H/nBSyghr7mm9JEQkOAm91HNoZQRvQdjennBb/oEuW+8oZHVpIKq+d25g==" crossorigin="anonymous" referrerpolicy="no-referrer">
     <title>Mi Chatbot Avanzado con Gemini</title>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .chat-container { width: 500px; background: white; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; overflow: hidden; height: 550px; }
-        .chat-header { background: #0078d4; color: white; padding: 18px; text-align: center; font-weight: bold; font-size: 1.2em; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .chat-box { flex: 1; padding: 15px; overflow-y: auto; border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 12px; background: #fafafa; }
-        .message { padding: 12px 16px; border-radius: 18px; max-width: 80%; word-wrap: break-word; font-size: 0.95em; line-height: 1.4; }
-        .user-msg { background: #0078d4; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .bot-msg { background: #ffffff; color: #202020; align-self: flex-start; border-bottom-left-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        
+        /* Variables de color estéticas para Modo Claro */
+        :root {
+            --bg-gradiente-1: #eef2f3;
+            --bg-gradiente-2: #8e9eab;
+            --bg-container: #ffffff;
+            --texto-principal: #333333;
+            --texto-secundario: #666666;
+            --borde: #dddddd;
+            --bg-usuario: #e1ffd4;
+            --bg-bot: #f1f1f1;
+            --boton-reiniciar: #ff4d4d;
+            --boton-enviar: #4CAF50;
+            --sombra: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Variables para Modo Oscuro (se activan al presionar el botón) */
+        body.dark-mode {
+            --bg-gradiente-1: #0f172a;
+            --bg-gradiente-2: #1e293b;
+            --bg-container: #1e293b;
+            --texto-principal: #f8fafc;
+            --texto-secundario: #94a3b8;
+            --borde: #334155;
+            --bg-usuario: #0f766e;
+            --bg-bot: #334155;
+            --boton-reiniciar: #ef4444;
+            --boton-enviar: #0ea5e9;
+            --sombra: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            /* Estética del fondo mejorada con un degradado suave */
+            background: linear-gradient(135deg, var(--bg-gradiente-1), var(--bg-gradiente-2));
+            background-attachment: fixed;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--texto-principal);
+        }
+
+        /* Botón de Modo Oscuro Flotante */
+        .theme-toggle-btn { position: fixed; top: 20px; right: 20px; background: var(--bg-container); color: var(--texto-principal); border: 1px solid var(--borde); padding: 10px 16px; border-radius: 50px; cursor: pointer; font-weight: 600; box-shadow: var(--sombra); z-index: 1000; display: flex; align-items: center; gap: 8px; }
+        .theme-toggle-btn:hover { opacity: 0.9; }
+        /* Contenedor principal adaptado */
+        .chat-container { width: 90%; max-width: 600px; background-color: var(--bg-container); border-radius: 16px; box-shadow: var(--sombra); overflow: hidden; display: flex; flex-direction: column; height: 80vh; border: 1px solid var(--borde); }
+        .chat-header { background-color: var(--bg-container); padding: 15px 20px; border-bottom: 1px solid var(--borde); display: flex; justify-content: space-between; align-items: center; }
+        .chat-header h5 { margin: 0; font-size: 1.3rem; color: var(--texto-principal); }
+        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background-color: var(--bg-container); }
+        .message { max-width: 75%; padding: 12px 16px; border-radius: 12px; font-size: 0.95rem; line-height: 1.4; word-wrap: break-word; }
+        /* Tus burbujas originales mapeadas a las variables de color */
+        .user-msg { background-color: var(--bg-usuario); color: var(--texto-principal); align-self: flex-end; border-bottom-right-radius: 2px; }
+        .bot-msg { background-color: var(--bg-bot); color: var(--texto-principal); align-self: flex-start; border-bottom-left-radius: 2px; }
         /* Estilos para renderizado de código dentro de Markdown */
         .bot-msg pre { background: #2d3748; color: #f7fafc; padding: 12px; border-radius: 8px; overflow-x: auto; font-family: 'Courier New', Courier, monospace; margin: 8px 0; }
         .bot-msg code { background: #edf2f7; color: #2d3748; padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
         .bot-msg pre code { background: transparent; color: inherit; padding: 0; }
         .bot-msg ul, .bot-msg ol { margin: 5px 0; padding-left: 20px; }
-        
-        .chat-input-area { display: flex; padding: 12px; background: white; align-items: center; gap: 8px; border-top: 1px solid #eee; }
+        .chat-input-area { display: flex; padding: 12px; background: var(--bg-contenedor); align-items: center; gap: 8px; border-top: 1px solid #eee; }
         .chat-input { flex: 1; padding: 12px; border: 1px solid #ccd0d5; border-radius: 24px; outline: none; padding-left: 18px; font-size: 0.95em; background: #f0f2f5; }
         .chat-input:focus { background: white; border-color: #0078d4; }
         .chat-btn { background: #0078d4; color: white; border: none; padding: 12px 20px; border-radius: 24px; cursor: pointer; font-weight: bold; font-size: 0.95em; transition: background 0.2s; }
         .chat-btn:hover { background: #005a9e; }
         .chat-btn:disabled { background: #ccc; cursor: not-allowed; }
-        
         /* Botón de Adjuntar Archivo */
         .file-label { background: #e1dfdd; color: #323130; padding: 12px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; font-weight: bold; font-size: 1.1em; transition: background 0.2s; }
         .file-label:hover { background: #c8c6c4; }
         #fileInput { display: none; }
         .preview-box { font-size: 0.85em; color: #605e5c; padding: 2px 15px; background: #f3f2f1; display: none; text-align: left; }
-
         /* Botón de Reiniciar Chat */
         .chat-header { display: flex; justify-content: space-between; align-items: center; background: #0078d4; color: white; padding: 12px 18px; font-weight: bold; font-size: 1.1em; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .clear-btn { background: rgba(255, 255, 255, 0.2); color: white; border: none; padding: 6px 12px; border-radius: 15px; cursor: pointer; font-size: 0.8em; font-weight: normal; transition: background 0.2s; }
         .clear-btn:hover { background: rgba(255, 255, 255, 0.35); }
 
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--borde);
+            border-radius: 8px;
+            outline: none;
+            background-color: var(--bg-container);
+            color: var(--texto-principal);
+            font-size: 0.95rem;
+        }
+
+        input[type="text"]::placeholder {
+            color: var(--texto-secundario);
+        }
+
+        input[type="text"]:focus {
+            background-color: var(--bg-container);
+            color: var(--texto-principal);
+            border-color: var(--borde); /* Mantiene tu borde actual */
+            outline: none; /* Evita el contorno azul del navegador */
+        }
+
     </style>
 </head>
 <body>
 
+<button class="theme-toggle-btn" id="theme-toggle">
+    <span id="theme-icon">🌙</span> <span id="theme-text">Modo Oscuro</span>
+</button>
+
 <div class="chat-container">
     <div class="chat-header">
-        <span>Asistente Pro Multimodal</span>
+        <h5>Mi Chatbot Avanzado con Gemini</h5>
         <button id="clearBtn" class="clear-btn" title="Reiniciar conversación">🔄 Reiniciar</button>
     </div>
     <div class="chat-box" id="chatBox">
@@ -82,6 +158,19 @@
 
 <script>
 $(document).ready(function() {
+
+    // Lógica jQuery para alternar Modo Claro / Modo Oscuro
+    $('#theme-toggle').on('click', function() {
+        $('body').toggleClass('dark-mode');
+                
+        if ($('body').hasClass('dark-mode')) {
+            $('#theme-icon').text('☀️');
+            $('#theme-text').text('Modo Claro');
+        } else {
+            $('#theme-icon').text('🌙');
+            $('#theme-text').text('Modo Oscuro');
+        }
+    });
 
     // Evento para limpiar el historial de la sesión
     $('#clearBtn').on('click', function() {
